@@ -32,4 +32,3 @@ grep 'VER=' skills/health/SKILL.md
 - Body: HTML format, bilingual (English Changelog + 中文更新日志), one-to-one
 - Each item: `<li><strong>Category</strong>: description.</li>`
 - Footer: update command `npx skills add tw93/claude-health@latest` + star + repo link
-- Reference: `gh release view V3.1.1 --repo tw93/miaoyan` for format example
