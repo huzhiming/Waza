@@ -3,8 +3,8 @@
   "name": "claude-health",
   "description": "Configuration health audit skill for Claude Code. Systematically audits CLAUDE.md, rules, skills, hooks, subagents, and verifiers across two parallel agents.",
   "owner": {
-    "name": "tw93",
-    "email": "piao.zhuchao@gmail.com"
+    "name": "Tw93",
+    "email": "hitw93@gmail.com"
   },
   "plugins": [
     {
