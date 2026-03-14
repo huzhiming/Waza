@@ -15,14 +15,7 @@ The goal is not just to find rule violations, but to diagnose which layer is mis
 
 ## Step 0: Assess project tier
 
-```bash
-P=$(pwd)
-echo "source_files: $(find "$P" -type f \( -name "*.rs" -o -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" -o -name "*.py" -o -name "*.go" -o -name "*.lua" -o -name "*.swift" -o -name "*.rb" -o -name "*.java" -o -name "*.kt" -o -name "*.cs" -o -name "*.cpp" -o -name "*.c" \) -not -path "*/.git/*" -not -path "*/node_modules/*" | wc -l)"
-echo "contributors: $(git -C "$P" log --format='%ae' 2>/dev/null | sort -u | wc -l)"
-echo "ci_workflows:  $(ls "$P/.github/workflows/"*.yml 2>/dev/null | wc -l)"
-echo "skills:        $(ls "$P/.claude/skills/" 2>/dev/null | wc -l)"
-echo "claude_md_lines: $(wc -l < "$P/CLAUDE.md" 2>/dev/null)"
-```
+Run the combined snapshot below (Steps 0 + 1 merged to reduce confirmation prompts):
 
 Use this rubric to pick the audit tier before proceeding:
 
@@ -35,11 +28,20 @@ Use this rubric to pick the audit tier before proceeding:
 **Apply the tier's standard throughout the audit. Do not flag missing layers that aren't required for the detected tier.**
 
 
-## Step 1: Collect configuration snapshot
+## Step 1: Collect configuration snapshot + conversation evidence
+
+Run this single block to collect all project data (tier metrics, config, and conversation files):
 
 ```bash
 P=$(pwd)
 SETTINGS="$P/.claude/settings.local.json"
+
+echo "=== TIER METRICS ==="
+echo "source_files: $(find "$P" -type f \( -name "*.rs" -o -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" -o -name "*.py" -o -name "*.go" -o -name "*.lua" -o -name "*.swift" -o -name "*.rb" -o -name "*.java" -o -name "*.kt" -o -name "*.cs" -o -name "*.cpp" -o -name "*.c" \) -not -path "*/.git/*" -not -path "*/node_modules/*" | wc -l)"
+echo "contributors: $(git -C "$P" log --format='%ae' 2>/dev/null | sort -u | wc -l)"
+echo "ci_workflows:  $(ls "$P/.github/workflows/"*.yml 2>/dev/null | wc -l)"
+echo "skills:        $(ls "$P/.claude/skills/" 2>/dev/null | wc -l)"
+echo "claude_md_lines: $(wc -l < "$P/CLAUDE.md" 2>/dev/null)"
 
 echo "=== CLAUDE.md (global) ===" ; cat ~/.claude/CLAUDE.md 2>/dev/null || echo "(none)"
 echo "=== CLAUDE.md (local) ===" ; cat "$P/CLAUDE.md" 2>/dev/null || echo "(none)"
@@ -61,6 +63,26 @@ except: print('(no MCP)')
 echo "=== allowedTools count ===" ; python3 -c "import json; d=json.load(open('$SETTINGS')); print(len(d.get('permissions',{}).get('allow',[])))" 2>/dev/null
 echo "=== HANDOFF.md ===" ; cat "$P/HANDOFF.md" 2>/dev/null || echo "(none)"
 echo "=== MEMORY.md ===" ; cat "$HOME/.claude/projects/-$(pwd | sed 's|/|-|g; s|^-||')/memory/MEMORY.md" 2>/dev/null | head -50 || echo "(none)"
+
+echo "=== CONVERSATION FILES ==="
+PROJECT_PATH=$(pwd | sed 's|/|-|g; s|^-||')
+CONVO_DIR=~/.claude/projects/-${PROJECT_PATH}
+ls -lhS "$CONVO_DIR"/*.jsonl 2>/dev/null | head -10
+
+echo "=== CONVERSATION EXTRACT (most recent) ==="
+LATEST=$(ls -t "$CONVO_DIR"/*.jsonl 2>/dev/null | head -1)
+if [ -n "$LATEST" ]; then
+  echo "file: $LATEST"
+  cat "$LATEST" | jq -r '
+    if .type == "user" then "USER: " + ((.message.content // "") | if type == "array" then map(select(.type == "text") | .text) | join(" ") else . end)
+    elif .type == "assistant" then
+      "ASSISTANT: " + ((.message.content // []) | map(select(.type == "text") | .text) | join("\n"))
+    else empty
+    end
+  ' 2>/dev/null | grep -v "^ASSISTANT: $" | head -150
+else
+  echo "(no conversation files)"
+fi
 ```
 
 Collect skill security and quality data for Agent D (run in parallel with the first block):
@@ -140,32 +162,7 @@ for DIR in "$P/.claude/skills" "$HOME/.claude/skills"; do
 done
 ```
 
-## Step 2: Collect conversation evidence
-
-Read and extract conversation files with jq below -- do NOT pass file paths to subagents (they cannot access `~/.claude/`). Assign to agents B and C: 1–2 files >50KB, 3–5 files 10–50KB, up to 5 files <10KB.
-
-```bash
-PROJECT_PATH=$(pwd | sed 's|/|-|g; s|^-||')
-CONVO_DIR=~/.claude/projects/-${PROJECT_PATH}
-
-# List the 10 most recent conversations with sizes
-ls -lhS "$CONVO_DIR"/*.jsonl 2>/dev/null | head -10
-```
-
-Extract content:
-```bash
-cat <file>.jsonl | jq -r '
-  if .type == "user" then "USER: " + ((.message.content // "") | if type == "array" then map(select(.type == "text") | .text) | join(" ") else . end)
-  elif .type == "assistant" then
-    "ASSISTANT: " + ((.message.content // []) | map(select(.type == "text") | .text) | join("\n"))
-  else empty
-  end
-' 2>/dev/null | grep -v "^ASSISTANT: $" | head -150
-```
-
-Store output in context for inline pasting into agents B and C.
-
-## Step 3: Launch parallel diagnostic agents
+## Step 2: Launch parallel diagnostic agents
 
 Spin up **four focused subagents** in parallel using the Agent tool. **Required:** each call must include `prompt`; fill in `[project]` and tier, use `(no conversation history)` if none.
 
@@ -352,7 +349,7 @@ Output format:
 
 Paste conversation content inline into agents B and C; do not pass file paths.
 
-## Step 4: Synthesize and present
+## Step 3: Synthesize and present
 
 Aggregate all agent outputs into a single report with these sections:
 
