@@ -47,7 +47,7 @@ echo "=== CLAUDE.md (local) ===" ; cat "$P/CLAUDE.md" 2>/dev/null || echo "(none
 echo "=== settings.local.json ===" ; cat "$SETTINGS" 2>/dev/null || echo "(none)"
 echo "=== rules/ ===" ; find "$P/.claude/rules" -name "*.md" 2>/dev/null | while IFS= read -r f; do echo "--- $f ---"; cat "$f"; done
 echo "=== skill descriptions ===" ; grep -r "^description:" "$P/.claude/skills" ~/.claude/skills 2>/dev/null
-echo "=== hooks ===" ; python3 -c "import json,sys; d=json.load(open('$SETTINGS')); print(json.dumps(d.get('hooks',{}), indent=2))" 2>/dev/null
+echo "=== hooks ===" ; python3 -c "import json,sys; d=json.load(open('$SETTINGS')); print(json.dumps(d.get('hooks',{}), indent=2))" 2>/dev/null || echo "(unavailable: settings.local.json missing or malformed)"
 echo "=== MCP ===" ; python3 -c "
 import json
 try:
@@ -59,8 +59,8 @@ try:
     est = n * 25 * 200  # ~200 tokens/tool, ~25 tools/server
     print(f'est_tokens: ~{est} ({round(est/2000)}% of 200K)')
 except: print('(no MCP)')
-" 2>/dev/null
-echo "=== allowedTools count ===" ; python3 -c "import json; d=json.load(open('$SETTINGS')); print(len(d.get('permissions',{}).get('allow',[])))" 2>/dev/null
+" 2>/dev/null || echo "(unavailable: settings.local.json missing or malformed)"
+echo "=== allowedTools count ===" ; python3 -c "import json; d=json.load(open('$SETTINGS')); print(len(d.get('permissions',{}).get('allow',[])))" 2>/dev/null || echo "(unavailable)"
 echo "=== HANDOFF.md ===" ; cat "$P/HANDOFF.md" 2>/dev/null || echo "(none)"
 echo "=== MEMORY.md ===" ; cat "$HOME/.claude/projects/-$(pwd | sed 's|[/_]|-|g; s|^-||')/memory/MEMORY.md" 2>/dev/null | head -50 || echo "(none)"
 
@@ -80,7 +80,7 @@ if [ -n "$FILES" ]; then
         "ASSISTANT: " + ((.message.content // []) | map(select(.type == "text") | .text) | join("\n"))
       else empty
       end
-    ' 2>/dev/null | grep -v "^ASSISTANT: $" | head -300
+    ' 2>/dev/null | grep -v "^ASSISTANT: $" | head -300 || echo "(unavailable: jq not installed or parse error)"
   done
 else
   echo "(no conversation files)"
