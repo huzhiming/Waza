@@ -247,6 +247,8 @@ STANDARD/COMPLEX: output "Launching parallel analysis agents" above, then list c
 
 Launch **two subagents** in parallel. Paste all data inline -- do not pass file paths. Before pasting, replace any credential values (API keys, tokens, passwords) with `[REDACTED]`; paste the structural data only.
 
+**Fallback:** If either subagent fails (API error, timeout, or empty result), do not abort. Analyze that layer locally from Step 1 data instead and note "(analyzed locally -- subagent unavailable)" in the affected section of the report.
+
 ### Agent 1 -- Context + Security Audit (no conversation needed)
 
 Read `agents/agent1-context.md` from this skill's directory. It specifies which Step 1 sections to paste and the full audit checklist.
