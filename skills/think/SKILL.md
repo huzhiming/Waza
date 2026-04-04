@@ -50,6 +50,8 @@ When comparing, ask:
 - What are we explicitly not building?
 - Would the same result hold with less: fewer fields, fewer states, fewer APIs?
 
+Before presenting the recommendation: attack it. Ask yourself what would make this approach fail. If the attack holds, the approach deforms, and you should present the deformed version instead. If the attack shatters the approach entirely, discard it and tell the user why.
+
 Get approval before proceeding.
 
 ## Phase 3: Validate the Architecture

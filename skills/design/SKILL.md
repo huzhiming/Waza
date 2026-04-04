@@ -70,6 +70,8 @@ Before submitting, check whether any of the following slipped in without intenti
 
 Any of these can appear if they serve the design intentionally. They cannot appear by default.
 
+Final test: if you swapped in completely different content and the layout still made sense without changes, you built a template, not a design. Redo it.
+
 ## Handoff
 
 End with:

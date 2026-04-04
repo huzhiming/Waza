@@ -47,6 +47,8 @@ Work through the materials yourself. For each piece:
 
 At the end of this phase, cut roughly half of what you collected. If you cannot decide what to cut, the material was not strong enough.
 
+For key concepts, try cutting across multiple angles: how did this idea evolve historically? What is the opposite claim? What does it look like in practice vs. in theory? What breaks if you remove it? This kind of multi-dimensional interrogation builds a real mental model, not just a definition.
+
 Claude's role here: explain, translate, answer specific questions. Not summarize or evaluate on your behalf.
 
 ## Phase 3: Outline

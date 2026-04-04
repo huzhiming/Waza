@@ -1,50 +1,52 @@
 <div align="center">
   <h1>Waza</h1>
-  <p><em>🥷 Claude Code skills: know the move before you need it.</em></p>
-  <a href="https://github.com/tw93/waza/stargazers"><img src="https://img.shields.io/github/stars/tw93/waza?style=flat-square" alt="Stars"></a>
-  <a href="https://github.com/tw93/waza/releases"><img src="https://img.shields.io/github/v/tag/tw93/waza?label=version&style=flat-square" alt="Version"></a>
+  <p><b>🥷 Claude Code skills for the complete engineer: think, build, debug, write, learn.</b></p>
+  <a href="https://github.com/tw93/Waza/stargazers"><img src="https://img.shields.io/github/stars/tw93/Waza?style=flat-square" alt="Stars"></a>
+  <a href="https://github.com/tw93/Waza/releases"><img src="https://img.shields.io/github/v/tag/tw93/Waza?label=version&style=flat-square" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License"></a>
   <a href="https://twitter.com/AiTw93"><img src="https://img.shields.io/badge/follow-Tw93-red?style=flat-square&logo=Twitter" alt="Twitter"></a>
 </div>
 
 <br/>
 
-A collection of [Claude Code skills](https://docs.anthropic.com/en/docs/claude-code/skills) for everyday software work. Skills are slash commands (`/think`, `/check`, `/hunt`, ...) that give Claude a focused methodology for a specific task: you type the command, Claude follows the playbook. Eight skills covering requirements and architecture, code review, debugging, frontend design, reading, writing, deep learning, and config health. No framework overhead, no telemetry.
+## Why
+
+A good engineer does not just write code. They think through requirements, review their own work, debug systematically, design interfaces that feel intentional, read primary sources, write clearly, and learn new domains by producing output, not consuming content. Waza gives each of these habits a [Claude Code skill](https://docs.anthropic.com/en/docs/claude-code/skills): you type the slash command, Claude follows the playbook. No framework overhead, no telemetry.
 
 ## Skills
 
-| Skill | Trigger | What it does |
+| Skill | When | What it does |
 | :--- | :--- | :--- |
 | `/think` | Before building anything new | Challenges the problem, pressure-tests the design, validates architecture before any code is written. |
-| `/check` | After a task, before merging | Code review with fix-first approach. Auto-fixes safe issues, batches judgment calls, verifies with evidence. |
+| `/check` | After a task, before merging | Reviews the diff, auto-fixes safe issues, batches judgment calls, verifies with evidence before claiming done. |
 | `/hunt` | Any bug or unexpected behavior | Systematic debugging. Root cause confirmed before any fix is applied. |
 | `/design` | Building frontend interfaces | Produces distinctive UI with a committed aesthetic direction. Avoids generic AI aesthetics. |
-| `/read` | Any URL or PDF | Fetches content as clean Markdown. Routes WeChat to a dedicated script, everything else through a proxy cascade. |
+| `/read` | Any URL or PDF | Fetches content as clean Markdown via proxy cascade. |
 | `/write` | Writing or editing prose | Enforces natural style for Chinese and English. Strips AI writing patterns. |
-| `/learn` | Diving into an unfamiliar domain | Six-phase process: collect sources, digest, outline, draft, refine with AI, self-review and publish. |
-| `/health` | Config feels off | Audits Claude Code setup across six layers: CLAUDE.md, rules, skills, hooks, MCP, behavior. |
+| `/learn` | Diving into an unfamiliar domain | Six-phase research workflow: collect, digest, outline, draft, refine, self-review and publish. |
+| `/health` | Config feels off | Audits Claude Code setup: CLAUDE.md, rules, skills, hooks, MCP, behavior. |
 
 ## Install
 
-**Single skill (recommended for most users):**
+**Single skill:**
 
 ```bash
-claude plugin marketplace add tw93/waza
+claude plugin marketplace add tw93/Waza
 claude plugin install health@waza
 ```
 
-Replace `health` with any skill name to install a different one.
+Replace `health` with any skill name.
 
-**All skills via npx:**
+**All skills:**
 
 ```bash
-npx skills add tw93/waza -g -y
+npx skills add tw93/Waza -g -y
 ```
 
-**Local install (clone and symlink):**
+**Local (clone + symlink):**
 
 ```bash
-git clone https://github.com/tw93/waza.git ~/www/waza
+git clone https://github.com/tw93/Waza.git ~/www/waza
 bash ~/www/waza/install.sh
 ```
 
