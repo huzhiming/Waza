@@ -63,6 +63,14 @@ At the end of this phase, cut roughly half of what you collected. If you cannot 
 
 For key concepts, try cutting across multiple angles: how did this idea evolve historically? What is the opposite claim? What does it look like in practice vs. in theory? What breaks if you remove it? This kind of multi-dimensional interrogation builds a real mental model, not just a definition.
 
+For key claims and frameworks, apply three-layer verification before including them in your outline:
+
+1. **Cross-domain recurrence.** Does this idea appear in at least two different contexts from the same source? A claim that shows up in one talk is a quote. A claim that appears in books, interviews, and decisions is a belief.
+2. **Generative power.** Can you use this framework to predict what the source would say about a new problem they have not addressed? If yes, it is a real mental model. If not, it is a surface observation.
+3. **Distinctiveness.** Is this specific to this source, or would any expert in the field say the same thing? Generic wisdom is not worth distilling.
+
+A claim that passes all three belongs in your outline. One that passes only one is background material. Zero passes: cut it.
+
 For fields with a research lineage, trace the intellectual genealogy: what problem was the foundational paper or idea responding to? What did it critique or improve on? Follow that chain backward two or three steps, then look forward at what built on top of it. Understanding a field as a sequence of problems being passed forward is more durable than understanding it as a set of current facts.
 
 Claude's role here: explain, translate, answer specific questions. Not summarize or evaluate on your behalf.
