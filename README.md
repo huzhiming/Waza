@@ -75,11 +75,29 @@ Replace `health` with any skill name. Requires Node 18+ and Claude Code.
 
 ## Background
 
-Tools like Superpowers and gstack are impressive, but they are heavy. Too many skills, too much configuration, too steep a learning curve for engineers who just want to get things done.
+I spent a day packaging the Claude Code skills I actually use into Waza. The name is Japanese for technique (わざ), a word from martial arts for a move practiced until it becomes instinct. It is the first thing I have open-sourced with no code at all, just Markdown. That would have felt embarrassing before AI.
 
-Waza is the opposite: eight skills that cover the habits that actually matter. Each one does one thing, has a clear trigger, and stays out of the way. The goal is not completeness. It is the right amount, done well.
+When Superpowers launched I installed it and uninstalled it the same day. Too heavy. People told me I was missing out. I found gstack later, which was better, but still more than I needed. I kept looking for something that did exactly what I needed and nothing else. So I built Waza for myself.
 
-Built from patterns accumulated across real projects, then refined with 30 days of usage data (300+ sessions, 7 projects, 500 hours). Each gotcha in a skill traces back to a specific failure: a wrong code path that cost four rounds, a release announced before artifacts were uploaded, a server restarted eight times without reading the error. The `/health` skill is based on the six-layer framework described in [this post](https://tw93.fun/en/2026-03-12/claude.html).
+Eight skills, no more. Each one maps to a habit I think a good engineer still needs in the AI age, and needs more than ever, because AI makes the gaps more visible:
+
+**Think before building.** AI writes fast, but the faster you move in the wrong direction, the farther you get. `/think` locks in the habit of questioning the problem before writing any code.
+
+**Have taste.** AI-generated interfaces are generic by default. `/design` enforces a committed aesthetic direction before a single line is written.
+
+**Debug systematically.** The worst AI loop is "change something, see what happens." `/hunt` requires a confirmed root cause before any fix is applied.
+
+**Review your own work.** AI code still needs a human to check it. `/check` reviews the diff, fixes what is unambiguous, and asks about the rest, with evidence not instinct.
+
+**Read primary sources.** Not summaries. `/read` converts any URL or PDF into clean Markdown so original material flows directly into your workflow.
+
+**Write clearly.** Technical work that cannot be communicated does not land. `/write` refines prose to reach the right audience in the right register.
+
+**Learn by producing.** Reading is not learning. `/learn` runs the full cycle: collect, digest, outline, draft, refine, publish. Output drives understanding.
+
+**Maintain your tools.** The codebase is not the only thing that needs care. When your Claude Code setup feels off, `/health` shows you which layer broke.
+
+Built from patterns accumulated across real projects, then refined with 30 days of usage data (300+ sessions, 7 projects, 500 hours). The `/health` skill is based on the six-layer framework described in [this post](https://tw93.fun/en/2026-03-12/claude.html).
 
 ## Support
 
