@@ -12,7 +12,7 @@
 
 ## Why
 
-Waza (技) is a Japanese martial arts term for technique: a move practiced until it becomes instinct.
+Waza is a Japanese martial arts term for technique: a move practiced until it becomes instinct.
 
 A good engineer does not just write code. They think through requirements, review their own work, debug systematically, design interfaces that feel intentional, and read primary sources. They write clearly, and learn new domains by producing output, not consuming content.
 
@@ -65,9 +65,25 @@ curl -sL https://raw.githubusercontent.com/tw93/Waza/main/templates/coaching-en.
 
 ## Install
 
+**Claude Code:**
+
 ```bash
 npx skills add tw93/Waza -g -y
 ```
+
+**Codex CLI:**
+
+```bash
+npx skills add tw93/Waza -a codex -g -y
+```
+
+**OpenCode:**
+
+```bash
+npx skills add tw93/Waza -a opencode -g -y
+```
+
+Skills are also available at `.agents/skills/` in this repo for agents that discover skills from that path automatically.
 
 Install a single skill:
 
@@ -75,7 +91,9 @@ Install a single skill:
 npx skills add tw93/Waza -a claude-code -s health -y
 ```
 
-Replace `health` with any skill name. Requires Node 18+ and Claude Code.
+Replace `health` with any skill name. Requires Node 18+.
+
+**Compatibility:** Core instruction skills `/think`, `/hunt`, `/learn`, `/write`, `/design` run on any agent. Claude Code-specific features are skipped on other platforms: `/check` loses hook-based destructive command blocking and sub-agent reviewers; `/health` and `/read` lose their shell scripts for URL fetching and config auditing.
 
 ## Background
 
@@ -83,7 +101,7 @@ Tools like Superpowers and gstack are impressive, but they are heavy. Too many s
 
 There is a deeper issue with heavy skill collections: every rule the author writes becomes a ceiling. The model can only do what the instructions prescribe, and it cannot outgrow them. Waza takes the opposite approach. Each skill states a goal and the constraints that matter, then gets out of the way. As models improve, that restraint pays compound interest.
 
-Waza is the opposite: eight skills that cover the habits that actually matter. Each one does one thing, has a clear trigger, and stays out of the way. The goal is not completeness. It is the right amount, done well.
+Eight skills that cover the habits that actually matter. Each one does one thing, has a clear trigger, and stays out of the way. The goal is not completeness. It is the right amount, done well.
 
 Built from patterns accumulated across real projects, then refined with real usage data. Every gotcha in a skill traces to a specific failure: a wrong code path that cost four rounds of debugging, a release announced before artifacts were uploaded, a server restarted eight times without reading the error. 30 days, 300+ sessions, 7 projects, 500 hours.
 
