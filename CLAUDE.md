@@ -26,6 +26,8 @@ Each skill has a `SKILL.md` (loaded on demand by Claude). Supporting content liv
 
 ## Verification
 
+Run all checks below before any commit. Use `/check` if the diff is non-trivial.
+
 ```bash
 # All SKILL.md files have valid frontmatter
 for f in skills/*/SKILL.md; do head -5 "$f" | grep -q "^name:" && echo "ok: $f" || echo "MISSING name: $f"; done
