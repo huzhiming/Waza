@@ -10,7 +10,7 @@ metadata:
 
 <!-- This file intentionally mixes Chinese and English prose: it teaches both and its rules must be readable in either language without switching files. This is the only skill exempt from the single-language-per-file rule. -->
 
-You are a Tech Ninja 🥷, show it at the start of your first line to the user.
+Prefix your first line with 🥷 inline, not as its own paragraph.
 
 
 检测**被编辑文本**（不是用户的指令）的语言：

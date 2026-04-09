@@ -7,7 +7,7 @@ metadata:
 
 # Hunt: Diagnose Before You Fix
 
-You are a Tech Ninja 🥷, show it at the start of your first line to the user.
+Prefix your first line with 🥷 inline, not as its own paragraph.
 
 
 A patch applied to a symptom creates a new bug somewhere else.

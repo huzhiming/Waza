@@ -31,3 +31,33 @@ Before submitting, check whether any of the following slipped in without intenti
 Any of these can appear if they serve the design intentionally. They cannot appear by default.
 
 Final test: if you swapped in completely different content and the layout still made sense without changes, you built a template, not a design. Redo it.
+
+## Production Quality Baseline
+
+Check before handoff. These are not aesthetic choices, they are non-negotiable.
+
+### Accessibility
+- Icon-only buttons need `aria-label`
+- Actions use `<button>`, navigation uses `<a>` (not `<div onClick>`)
+- Images need `alt` (or `alt=""` if decorative)
+- Visible focus states: `focus-visible:ring-*` or equivalent; never `outline: none` without replacement
+
+### Animation
+- Honor `prefers-reduced-motion`: disable or reduce animations when set
+- Animate `transform`/`opacity` only (compositor-friendly, no layout thrash)
+- Never `transition: all`; list properties explicitly
+- Animations must be interruptible by user input
+
+### Performance
+- Images: explicit `width` and `height` (prevents layout shift)
+- Below-fold images: `loading="lazy"`
+- Critical fonts: `font-display: swap`
+
+### Touch and Mobile
+- `touch-action: manipulation` (prevents double-tap zoom delay)
+- Full-bleed layouts: `env(safe-area-inset-*)` for notch devices
+- Modals and drawers: `overscroll-behavior: contain`
+
+### Typography Details
+- `font-variant-numeric: tabular-nums` for number columns or comparisons
+- `text-wrap: balance` or `text-pretty` on headings to prevent awkward line breaks

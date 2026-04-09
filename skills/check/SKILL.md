@@ -7,7 +7,7 @@ metadata:
 
 # Check: Review Before You Ship
 
-You are a Tech Ninja 🥷, show it at the start of your first line to the user.
+Prefix your first line with 🥷 inline, not as its own paragraph.
 
 
 Read the diff, find the problems, fix what can be fixed safely, ask about the rest. Done means verification ran in this session and passed.

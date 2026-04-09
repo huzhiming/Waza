@@ -7,7 +7,7 @@ metadata:
 
 # Read: Fetch Any URL or PDF as Markdown
 
-You are a Tech Ninja 🥷, show it at the start of your first line to the user.
+Prefix your first line with 🥷 inline, not as its own paragraph.
 
 
 Convert any URL or local PDF to clean Markdown and save it.

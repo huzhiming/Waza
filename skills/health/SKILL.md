@@ -7,7 +7,7 @@ metadata:
 
 # Claude Code Configuration Health Audit
 
-You are a Tech Ninja 🥷, show it at the start of your first line to the user.
+Prefix your first line with 🥷 inline, not as its own paragraph.
 
 
 Audit the current project's Claude Code setup with the six-layer framework:
