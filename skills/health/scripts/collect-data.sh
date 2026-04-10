@@ -7,25 +7,304 @@ set -euo pipefail
 P=$(pwd)
 SETTINGS="$P/.claude/settings.local.json"
 TIER="${1:-auto}"
+PROJECT_KEY=$(printf '%s' "$P" | sed 's|[/_]|-|g; s|^-||')
+CONVO_DIR="$HOME/.claude/projects/-${PROJECT_KEY}"
+
+count_project_files() {
+  local count
+  count=$(git -C "$P" ls-files 2>/dev/null | wc -l | tr -d ' ' || true)
+  if [ -z "$count" ] || [ "$count" = "0" ]; then
+    count=$(find "$P" -type f \
+      -not -path "*/.git/*" \
+      -not -path "*/node_modules/*" \
+      -not -path "*/dist/*" \
+      -not -path "*/build/*" \
+      2>/dev/null | wc -l | tr -d ' ')
+  fi
+  printf '%s\n' "${count:-0}"
+}
+
+count_contributors() {
+  local count
+  count=$(git -C "$P" log -n 500 --format='%ae' 2>/dev/null | sort -u | wc -l | tr -d ' ' || true)
+  printf '%s\n' "${count:-0}"
+}
+
+count_ci_workflows() {
+  local count=0
+  if [ -d "$P/.github/workflows" ]; then
+    count=$(find "$P/.github/workflows" -maxdepth 1 -type f \( -name "*.yml" -o -name "*.yaml" \) 2>/dev/null | wc -l | tr -d ' ')
+  fi
+  printf '%s\n' "${count:-0}"
+}
+
+count_local_skills() {
+  local count=0
+  if [ -d "$P/.claude/skills" ]; then
+    count=$(find -L "$P/.claude/skills" -maxdepth 4 -name "SKILL.md" 2>/dev/null | while IFS= read -r f; do
+      grep -q '^name: health$' "$f" 2>/dev/null && continue
+      echo "$f"
+    done | wc -l | tr -d ' ')
+  fi
+  printf '%s\n' "${count:-0}"
+}
+
+count_file_lines() {
+  local file="$1"
+  if [ -f "$file" ]; then
+    wc -l < "$file" | tr -d ' '
+  else
+    echo 0
+  fi
+}
+
+count_file_words() {
+  local file="$1"
+  if [ -f "$file" ]; then
+    wc -w < "$file" | tr -d ' '
+  else
+    echo 0
+  fi
+}
+
+list_rule_files() {
+  if [ -d "$P/.claude/rules" ]; then
+    find "$P/.claude/rules" -type f -name "*.md" 2>/dev/null | sort || true
+  fi
+}
+
+print_rule_files() {
+  local found=0
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    found=1
+    echo "--- $f ---"
+    cat "$f"
+  done < <(list_rule_files)
+  [ "$found" -eq 1 ] || echo "(none)"
+}
+
+rules_word_count() {
+  local words=0
+  if [ -d "$P/.claude/rules" ]; then
+    words=$(while IFS= read -r f; do
+      [ -n "$f" ] || continue
+      cat "$f"
+    done < <(list_rule_files) | wc -w | tr -d ' ')
+  fi
+  printf '%s\n' "${words:-0}"
+}
+
+collect_skill_descriptions_raw() {
+  if [ -d "$P/.claude/skills" ]; then
+    grep -r "^description:" "$P/.claude/skills" 2>/dev/null || true
+  fi
+  if [ -d "$HOME/.claude/skills" ]; then
+    grep -r "^description:" "$HOME/.claude/skills" 2>/dev/null || true
+  fi
+}
+
+print_skill_descriptions() {
+  local out
+  out=$(collect_skill_descriptions_raw | sort -u)
+  if [ -n "$out" ]; then
+    printf '%s\n' "$out"
+  else
+    echo "(none)"
+  fi
+}
+
+skill_description_word_count() {
+  local words
+  words=$(collect_skill_descriptions_raw | wc -w | tr -d ' ')
+  printf '%s\n' "${words:-0}"
+}
+
+list_skill_files() {
+  local dir="$1"
+  [ -d "$dir" ] || return 0
+  find -L "$dir" -maxdepth 4 -name "SKILL.md" 2>/dev/null | sort || true
+}
+
+is_health_skill() {
+  grep -q '^name: health$' "$1" 2>/dev/null
+}
+
+list_conversation_files() {
+  [ -d "$CONVO_DIR" ] || return 0
+  ls -1t "$CONVO_DIR"/*.jsonl 2>/dev/null || true
+}
+
+print_conversation_file_listing() {
+  local out
+  out=$(ls -lhS "$CONVO_DIR"/*.jsonl 2>/dev/null || true)
+  if [ -n "$out" ]; then
+    printf '%s\n' "$out" | head -10
+  else
+    echo "(no conversation files)"
+  fi
+}
+
+previous_conversation_files() {
+  list_conversation_files | tail -n +2 | head -2
+}
+
+extract_messages_from_file() {
+  local file="$1"
+  head -c 512000 "$file" | jq -r '
+    def flatten:
+      (.message.content // .content // .text // "")
+      | if type == "array" then
+          [ .[] | if type == "object" and .type == "text" then .text elif type == "string" then . else empty end ] | join(" ")
+        elif type == "string" then .
+        else empty
+        end
+      | gsub("[\\r\\n]+"; " ")
+      | gsub("  +"; " ")
+      | sub("^ "; "")
+      | sub(" $"; "");
+    (.type // .role // "") as $kind
+    | (flatten) as $text
+    | if ($text | length) == 0 then
+        empty
+      elif $kind == "user" then
+        "USER: " + $text
+      elif $kind == "assistant" then
+        "ASSISTANT: " + $text
+      elif $kind == "system" then
+        "SYSTEM: " + $text
+      else
+        empty
+      end
+  ' 2>/dev/null
+}
+
+extract_signals_from_file() {
+  local file="$1"
+  head -c 512000 "$file" | jq -r '
+    def flatten:
+      (.message.content // .content // .text // "")
+      | if type == "array" then
+          [ .[] | if type == "object" and .type == "text" then .text elif type == "string" then . else empty end ] | join(" ")
+        elif type == "string" then .
+        else empty
+        end
+      | gsub("[\\r\\n]+"; " ")
+      | gsub("  +"; " ")
+      | sub("^ "; "")
+      | sub(" $"; "");
+    (.type // .role // "") as $kind
+    | (flatten) as $text
+    | if ($text | length) == 0 then
+        empty
+      elif ($text | test("(?i)(conversation was compressed|context limit|context window|truncat|/compact|context management|token limit|window is full|compaction)")) then
+        "CONTEXT SIGNAL: " + $text
+      elif $kind == "user" and ($text | test("(?i)(\\bdon.?t\\b|\\bdo not\\b|\\bplease\\b|\\binstead\\b|\\bavoid\\b|\\bremember\\b|\\bnext time\\b|\\bremove\\b|\\bfix\\b|\\bkeep\\b|\\bmust\\b|\\bshould\\b|不要|别再|请不要|请|改成|改为|修复|去掉|保持|统一|必须|直接)")) then
+        "USER CORRECTION: " + $text
+      else
+        empty
+      end
+  ' 2>/dev/null
+}
+
+print_conversation_signals() {
+  local files file chunk found=0
+  files=$(previous_conversation_files)
+  if [ -z "$files" ]; then
+    echo "(no conversation files)"
+    return
+  fi
+  if ! command -v jq >/dev/null 2>&1; then
+    echo "(unavailable: jq not installed or parse error)"
+    return
+  fi
+  while IFS= read -r file; do
+    [ -f "$file" ] || continue
+    if ! chunk=$(extract_signals_from_file "$file"); then
+      echo "(unavailable: jq not installed or parse error)"
+      return
+    fi
+    chunk=$(printf '%s\n' "$chunk" | head -40 || true)
+    if [ -n "$chunk" ]; then
+      found=1
+      echo "--- file: $file ---"
+      printf '%s\n' "$chunk"
+    fi
+  done <<EOF
+$files
+EOF
+  [ "$found" -eq 1 ] || echo "(no conversation signals detected)"
+}
+
+print_conversation_extract() {
+  local files file chunk found=0
+  files=$(previous_conversation_files)
+  if [ -z "$files" ]; then
+    echo "(no conversation files)"
+    return
+  fi
+  if ! command -v jq >/dev/null 2>&1; then
+    echo "(unavailable: jq not installed or parse error)"
+    return
+  fi
+  while IFS= read -r file; do
+    [ -f "$file" ] || continue
+    found=1
+    echo "--- file: $file ---"
+    if ! chunk=$(extract_messages_from_file "$file"); then
+      echo "(unavailable: jq not installed or parse error)"
+      return
+    fi
+    chunk=$(printf '%s\n' "$chunk" | grep -v '^ASSISTANT: $' | head -150 || true)
+    if [ -n "$chunk" ]; then
+      printf '%s\n' "$chunk"
+    else
+      echo "(no extractable conversation messages)"
+    fi
+  done <<EOF
+$files
+EOF
+  [ "$found" -eq 1 ] || echo "(no conversation files)"
+}
+
+print_mcp_access_denials() {
+  local files file chunk found=0
+  files=$(list_conversation_files | head -5)
+  if [ -z "$files" ]; then
+    echo "(no conversation files)"
+    return
+  fi
+  while IFS= read -r file; do
+    [ -f "$file" ] || continue
+    chunk=$(head -c 1048576 "$file" | grep -Em 2 'Access denied - path outside allowed directories|tool-results/.+ not in ' 2>/dev/null || true)
+    if [ -n "$chunk" ]; then
+      found=1
+      printf '%s\n' "$chunk"
+    fi
+  done <<EOF
+$files
+EOF
+  [ "$found" -eq 1 ] || echo "(none found)"
+}
+
+PROJECT_FILES=$(count_project_files)
+CONTRIBUTORS=$(count_contributors)
+CI_WORKFLOWS=$(count_ci_workflows)
 
 echo "[1/10] Tier metrics..."
 echo "=== TIER METRICS ==="
-echo "project_files: $(git -C "$P" ls-files 2>/dev/null | wc -l || find "$P" -type f -not -path "*/.git/*" -not -path "*/node_modules/*" -not -path "*/dist/*" -not -path "*/build/*" | wc -l)"
-echo "contributors: $(git -C "$P" log -n 500 --format='%ae' 2>/dev/null | sort -u | wc -l)"
-echo "ci_workflows:  $(ls "$P/.github/workflows/"*.yml "$P/.github/workflows/"*.yaml 2>/dev/null | wc -l)"
-echo "skills:        $(find "$P/.claude/skills" -name "SKILL.md" 2>/dev/null | grep -v '/health/SKILL.md' | wc -l)"
-echo "claude_md_lines: $(wc -l < "$P/CLAUDE.md" 2>/dev/null)"
+echo "project_files: $PROJECT_FILES"
+echo "contributors: $CONTRIBUTORS"
+echo "ci_workflows:  $CI_WORKFLOWS"
+echo "skills:        $(count_local_skills)"
+echo "claude_md_lines: $(count_file_lines "$P/CLAUDE.md")"
 
 # Auto-detect tier if not passed as argument.
 # Matches SKILL.md definition: Simple = <500 files AND <=1 contributor AND no CI.
 if [ "$TIER" = "auto" ]; then
-  _FC=$(git -C "$P" ls-files 2>/dev/null | wc -l | tr -d ' ')
-  [ -z "$_FC" ] || [ "$_FC" -eq 0 ] && _FC=$(find "$P" -type f -not -path "*/.git/*" -not -path "*/node_modules/*" -not -path "*/dist/*" -not -path "*/build/*" 2>/dev/null | wc -l | tr -d ' ')
-  _CC=$(git -C "$P" log -n 500 --format='%ae' 2>/dev/null | sort -u | wc -l | tr -d ' ')
-  _CI=$(ls "$P/.github/workflows/"*.yml "$P/.github/workflows/"*.yaml 2>/dev/null | wc -l | tr -d ' ' || echo 0)
-  if [ "${_FC:-0}" -lt 500 ] && [ "${_CC:-0}" -le 1 ] && [ "${_CI:-0}" -eq 0 ]; then
+  if [ "${PROJECT_FILES:-0}" -lt 500 ] && [ "${CONTRIBUTORS:-0}" -le 1 ] && [ "${CI_WORKFLOWS:-0}" -eq 0 ]; then
     TIER="simple"
-  elif [ "${_FC:-0}" -lt 5000 ]; then
+  elif [ "${PROJECT_FILES:-0}" -lt 5000 ]; then
     TIER="standard"
   else
     TIER="complex"
@@ -41,59 +320,93 @@ echo "[3/10] Settings, hooks, MCP..."
 echo "=== settings.local.json ===" ; cat "$SETTINGS" 2>/dev/null || echo "(none)"
 
 echo "[4/10] Rules + skill descriptions..."
-echo "=== rules/ ===" ; find "$P/.claude/rules" -name "*.md" 2>/dev/null | while IFS= read -r f; do echo "--- $f ---"; cat "$f"; done
-echo "=== skill descriptions ===" ; { [ -d "$P/.claude/skills" ] && grep -r "^description:" "$P/.claude/skills" 2>/dev/null; grep -r "^description:" ~/.claude/skills 2>/dev/null; } | sort -u
+echo "=== rules/ ===" ; print_rule_files
+echo "=== skill descriptions ===" ; print_skill_descriptions
 
 echo "[5/10] Context budget estimate..."
 echo "=== STARTUP CONTEXT ESTIMATE ==="
-echo "global_claude_words: $(wc -w < ~/.claude/CLAUDE.md 2>/dev/null | tr -d ' ' || echo 0)"
-echo "local_claude_words: $(wc -w < "$P/CLAUDE.md" 2>/dev/null | tr -d ' ' || echo 0)"
-echo "rules_words: $(find "$P/.claude/rules" -name "*.md" 2>/dev/null | while IFS= read -r f; do cat "$f"; done | wc -w | tr -d ' ')"
-echo "skill_desc_words: $({ [ -d "$P/.claude/skills" ] && grep -r "^description:" "$P/.claude/skills" 2>/dev/null; grep -r "^description:" ~/.claude/skills 2>/dev/null; } | wc -w | tr -d ' ')"
-python3 -c "
-import json, sys
+echo "global_claude_words: $(count_file_words "$HOME/.claude/CLAUDE.md")"
+echo "local_claude_words: $(count_file_words "$P/CLAUDE.md")"
+echo "rules_words: $(rules_word_count)"
+echo "skill_desc_words: $(skill_description_word_count)"
+if command -v python3 >/dev/null 2>&1; then
+python3 - "$SETTINGS" <<'PYEOF' 2>/dev/null || echo "(unavailable)"
+import json
+import sys
+
+path = sys.argv[1]
 try:
-    d = json.load(open('$SETTINGS'))
-except Exception as e:
+    with open(path) as fh:
+        d = json.load(fh)
+except Exception:
     msg = '(unavailable: settings.local.json missing or malformed)'
-    print('=== hooks ==='); print(msg)
-    print('=== MCP ==='); print(msg)
-    print('=== MCP FILESYSTEM ==='); print(msg)
-    print('=== allowedTools count ==='); print(msg)
+    print('=== hooks ===')
+    print(msg)
+    print('=== MCP ===')
+    print(msg)
+    print('=== MCP FILESYSTEM ===')
+    print(msg)
+    print('=== allowedTools count ===')
+    print(msg)
     sys.exit(0)
 
 print('=== hooks ===')
 print(json.dumps(d.get('hooks', {}), indent=2))
 
 print('=== MCP ===')
-s = d.get('mcpServers', d.get('enabledMcpjsonServers', {}))
-names = list(s.keys()) if isinstance(s, dict) else list(s)
-n = len(names)
-print(f'servers({n}):', ', '.join(names))
-est = n * 25 * 200
+servers = d.get('mcpServers', d.get('enabledMcpjsonServers', {}))
+names = list(servers.keys()) if isinstance(servers, dict) else list(servers)
+count = len(names)
+print(f'servers({count}):', ', '.join(names))
+est = count * 25 * 200
 print(f'est_tokens: ~{est} ({round(est/2000)}% of 200K)')
 
 print('=== MCP FILESYSTEM ===')
-if isinstance(s, list):
+if isinstance(servers, list):
     print('filesystem_present: (array format -- check .mcp.json)')
     print('allowedDirectories: (not detectable)')
 else:
-    fs = s.get('filesystem') if isinstance(s, dict) else None; a = []
-    if isinstance(fs, dict):
-        a = fs.get('allowedDirectories') or (fs.get('config', {}).get('allowedDirectories') if isinstance(fs.get('config'), dict) else [])
-        if not a and isinstance(fs.get('args'), list):
-            args = fs['args']
-            for i, v in enumerate(args):
-                if v in ('--allowed-directories', '--allowedDirectories') and i+1 < len(args): a = [args[i+1]]; break
-            if not a: a = [v for v in args if v.startswith('/') or (v.startswith('~') and len(v) > 1)]
-    print('filesystem_present:', 'yes' if fs else 'no')
-    print('allowedDirectories:', a or '(missing or not detected)')
+    filesystem = servers.get('filesystem') if isinstance(servers, dict) else None
+    allowed = []
+    if isinstance(filesystem, dict):
+        allowed = filesystem.get('allowedDirectories') or (
+            filesystem.get('config', {}).get('allowedDirectories')
+            if isinstance(filesystem.get('config'), dict)
+            else []
+        )
+        if not allowed and isinstance(filesystem.get('args'), list):
+            args = filesystem['args']
+            for index, value in enumerate(args):
+                if value in ('--allowed-directories', '--allowedDirectories') and index + 1 < len(args):
+                    allowed = [args[index + 1]]
+                    break
+            if not allowed:
+                allowed = [value for value in args if value.startswith('/') or (value.startswith('~') and len(value) > 1)]
+    print('filesystem_present:', 'yes' if filesystem else 'no')
+    print('allowedDirectories:', allowed or '(missing or not detected)')
 
 print('=== allowedTools count ===')
 print(len(d.get('permissions', {}).get('allow', [])))
-" 2>/dev/null || echo "(unavailable)"
+PYEOF
+else
+  echo "=== hooks ==="
+  echo "(unavailable)"
+  echo "=== MCP ==="
+  echo "(unavailable)"
+  echo "=== MCP FILESYSTEM ==="
+  echo "(unavailable)"
+  echo "=== allowedTools count ==="
+  echo "(unavailable)"
+fi
+
 echo "[6/10] Nested CLAUDE.md + gitignore..."
-echo "=== NESTED CLAUDE.md ===" ; find "$P" -maxdepth 4 -name "CLAUDE.md" -not -path "$P/CLAUDE.md" -not -path "*/.git/*" -not -path "*/node_modules/*" 2>/dev/null || echo "(none)"
+echo "=== NESTED CLAUDE.md ==="
+_NESTED_CLAUDE=$(find "$P" -maxdepth 4 -name "CLAUDE.md" -not -path "$P/CLAUDE.md" -not -path "*/.git/*" -not -path "*/node_modules/*" 2>/dev/null || true)
+if [ -n "$_NESTED_CLAUDE" ]; then
+  printf '%s\n' "$_NESTED_CLAUDE"
+else
+  echo "(none)"
+fi
 echo "=== GITIGNORE ==="
 _GITIGNORE_HIT=$(git -C "$P" check-ignore -v .claude/settings.local.json 2>/dev/null || true)
 if [ -n "$_GITIGNORE_HIT" ]; then
@@ -109,56 +422,42 @@ if [ -n "$_GITIGNORE_HIT" ]; then
 else
   echo "settings.local.json: NOT gitignored -- risk of committing tokens/credentials"
 fi
+
 echo "[7/10] HANDOFF.md + MEMORY.md..."
 echo "=== HANDOFF.md ===" ; cat "$P/HANDOFF.md" 2>/dev/null || echo "(none)"
-echo "=== MEMORY.md ===" ; cat "$HOME/.claude/projects/-$(pwd | sed 's|[/_]|-|g; s|^-||')/memory/MEMORY.md" 2>/dev/null | head -50 || echo "(none)"
-
-echo "[8/10] Conversation extract (up to 2 recent sessions)..."
-echo "=== CONVERSATION FILES ==="
-PROJECT_PATH=$(pwd | sed 's|[/_]|-|g; s|^-||')
-CONVO_DIR=~/.claude/projects/-${PROJECT_PATH}
-ls -lhS "$CONVO_DIR"/*.jsonl 2>/dev/null | head -10
-
-# Skip the active session, it may still be incomplete.
-_PREV_FILES=$(ls -t "$CONVO_DIR"/*.jsonl 2>/dev/null | tail -n +2 | head -2)
-
-if [ "$TIER" != "simple" ]; then
-echo "=== CONVERSATION EXTRACT (up to 2 most recent, confidence improves with more files) ==="
-if [ -n "$_PREV_FILES" ]; then
-  echo "$_PREV_FILES" | while IFS= read -r F; do
-    [ -f "$F" ] || continue
-    echo "--- file: $F ---"
-    head -c 512000 "$F" | jq -r '
-      if .type == "user" then "USER: " + ((.message.content // "") | if type == "array" then map(select(.type == "text") | .text) | join(" ") else . end)
-      elif .type == "assistant" then
-        "ASSISTANT: " + ((.message.content // []) | map(select(.type == "text") | .text) | join("\n"))
-      else empty
-      end
-    ' 2>/dev/null | grep -v "^ASSISTANT: $" | head -150 || echo "(unavailable: jq not installed or parse error)"
-  done
+echo "=== MEMORY.md ==="
+if [ -f "$HOME/.claude/projects/-${PROJECT_KEY}/memory/MEMORY.md" ]; then
+  head -50 "$HOME/.claude/projects/-${PROJECT_KEY}/memory/MEMORY.md"
 else
-  echo "(no conversation files)"
+  echo "(none)"
 fi
 
+echo "[8/10] Conversation signals + extract..."
+echo "=== CONVERSATION FILES ==="
+print_conversation_file_listing
+
+echo "=== CONVERSATION SIGNALS ==="
+print_conversation_signals
+
+if [ "$TIER" != "simple" ]; then
+echo "=== CONVERSATION EXTRACT ==="
+print_conversation_extract
 echo "=== MCP ACCESS DENIALS ==="
-ls -t "$CONVO_DIR"/*.jsonl 2>/dev/null | head -5 | while IFS= read -r F; do
-  head -c 1048576 "$F" | grep -Em 2 'Access denied - path outside allowed directories|tool-results/.+ not in ' 2>/dev/null
-done | head -20
+print_mcp_access_denials
 else
   echo "=== CONVERSATION EXTRACT ===" ; echo "(skipped: simple tier)"
   echo "=== MCP ACCESS DENIALS ===" ; echo "(skipped: simple tier)"
 fi
 
-# --- Skill scan ---
-# Exclude self by frontmatter name, stable across install paths.
-SELF_SKILL=$( (grep -rl '^name: health$' "$P/.claude/skills" "$HOME/.claude/skills" 2>/dev/null || true) | grep 'SKILL.md' | head -1)
-[ -z "$SELF_SKILL" ] && SELF_SKILL="health/SKILL.md"
-
 echo "[9/10] Skill inventory + frontmatter + provenance..."
 echo "=== SKILL INVENTORY ==="
+_SKILL_FOUND=0
 for DIR in "$P/.claude/skills" "$HOME/.claude/skills"; do
   [ -d "$DIR" ] || continue
-  find -L "$DIR" -maxdepth 4 -name "SKILL.md" 2>/dev/null | grep -v "$SELF_SKILL" | while IFS= read -r f; do
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    is_health_skill "$f" && continue
+    _SKILL_FOUND=1
     WORDS=$(wc -w < "$f" | tr -d ' ')
     IS_LINK="no"; LINK_TARGET=""
     SKILL_DIR=$(dirname "$f")
@@ -166,26 +465,34 @@ for DIR in "$P/.claude/skills" "$HOME/.claude/skills"; do
       IS_LINK="yes"; LINK_TARGET=$(readlink -f "$SKILL_DIR")
     fi
     echo "path=$f words=$WORDS symlink=$IS_LINK target=$LINK_TARGET"
-  done
+  done < <(list_skill_files "$DIR")
 done
+[ "$_SKILL_FOUND" -eq 1 ] || echo "(none)"
 
 echo "=== SKILL FRONTMATTER ==="
+_FRONTMATTER_FOUND=0
 for DIR in "$P/.claude/skills" "$HOME/.claude/skills"; do
   [ -d "$DIR" ] || continue
-  find -L "$DIR" -maxdepth 4 -name "SKILL.md" 2>/dev/null | grep -v "$SELF_SKILL" | while IFS= read -r f; do
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    is_health_skill "$f" && continue
+    _FRONTMATTER_FOUND=1
     if head -1 "$f" | grep -q '^---'; then
       echo "frontmatter=yes path=$f"
       sed -n '2,/^---$/p' "$f" | head -10
     else
       echo "frontmatter=MISSING path=$f"
     fi
-  done
+  done < <(list_skill_files "$DIR")
 done
+[ "$_FRONTMATTER_FOUND" -eq 1 ] || echo "(none)"
 
 echo "=== SKILL SYMLINK PROVENANCE ==="
+_PROVENANCE_FOUND=0
 for DIR in "$P/.claude/skills" "$HOME/.claude/skills"; do
   [ -d "$DIR" ] || continue
   find "$DIR" -maxdepth 1 -type l 2>/dev/null | while IFS= read -r link; do
+    _PROVENANCE_FOUND=1
     TARGET=$(readlink -f "$link")
     echo "link=$(basename "$link") target=$TARGET"
     GIT_ROOT=$(git -C "$TARGET" rev-parse --show-toplevel 2>/dev/null || echo "")
@@ -196,18 +503,30 @@ for DIR in "$P/.claude/skills" "$HOME/.claude/skills"; do
     fi
   done
 done
+if ! { for DIR in "$P/.claude/skills" "$HOME/.claude/skills"; do
+  [ -d "$DIR" ] || continue
+  find "$DIR" -maxdepth 1 -type l 2>/dev/null
+done | grep -q .; }; then
+  echo "(none)"
+fi
 
 echo "[10/10] Skill content sample + security scan..."
 if [ "$TIER" != "simple" ]; then
-echo "=== SKILL FULL CONTENT (sample: up to 3 skills, 60 lines each) ==="
-{ for DIR in "$P/.claude/skills" "$HOME/.claude/skills"; do
-    [ -d "$DIR" ] || continue
-    find -L "$DIR" -maxdepth 4 -name "SKILL.md" 2>/dev/null | grep -v "$SELF_SKILL"
-  done
-} | head -3 | while IFS= read -r f; do
-  echo "--- FULL: $f ---"
-  head -60 "$f"
+echo "=== SKILL FULL CONTENT ==="
+_CONTENT_COUNT=0
+for DIR in "$P/.claude/skills" "$HOME/.claude/skills"; do
+  [ -d "$DIR" ] || continue
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    is_health_skill "$f" && continue
+    _CONTENT_COUNT=$((_CONTENT_COUNT + 1))
+    [ "$_CONTENT_COUNT" -le 3 ] || break
+    echo "--- FULL: $f ---"
+    head -60 "$f"
+  done < <(list_skill_files "$DIR")
+  [ "$_CONTENT_COUNT" -ge 3 ] && break
 done
+[ "$_CONTENT_COUNT" -gt 0 ] || echo "(none)"
 else
   echo "=== SKILL FULL CONTENT ===" ; echo "(skipped: simple tier)"
 fi
