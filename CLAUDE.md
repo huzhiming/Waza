@@ -2,6 +2,16 @@
 
 Personal skill collection for Claude Code. Eight skills covering the complete engineering workflow: think, design, check, hunt, write, learn, read, health.
 
+## Shared Agent Adapters
+
+This file is the source of truth for repository-level agent instructions.
+
+- Edit `skills/` and `rules/` directly. Do not edit adapter paths such as `.cline/skills` or `.trae/rules/project_rules.md`.
+- Keep skill metadata stable unless you are intentionally renaming or re-scoping a skill: `name`, `description`, and folder name should continue to match.
+- Use `AGENTS.md` as the cross-tool entrypoint for agents that support the standard file name.
+- Use `.trae/rules/project_rules.md` for Trae project rules. It should stay a thin adapter that points back to this file.
+- Use `.cline/skills` for Cline project skill discovery. It should stay a thin adapter that points back to `skills/`.
+
 ## Structure
 
 ```

@@ -1,15 +1,15 @@
 PROJECT_KEY := $(shell printf '%s' "$(CURDIR)" | sed 's|[/_]|-|g; s|^-||')
 
-.PHONY: test verify-docs verify-scripts smoke-statusline smoke-statusline-installer smoke-verify-skills smoke-health
+.PHONY: test verify-docs verify-scripts smoke-statusline smoke-statusline-installer smoke-verify-skills smoke-health smoke-link-project
 
-test: verify-docs verify-scripts smoke-statusline smoke-statusline-installer smoke-verify-skills smoke-health
+test: verify-docs verify-scripts smoke-statusline smoke-statusline-installer smoke-verify-skills smoke-health smoke-link-project
 
 verify-docs:
 	./scripts/verify-skills.sh
 
 verify-scripts:
 	git diff --check
-	bash -n scripts/statusline.sh skills/health/scripts/collect-data.sh skills/read/scripts/fetch.sh scripts/setup-statusline.sh skills/check/scripts/run-tests.sh
+	bash -n scripts/statusline.sh scripts/link-project.sh skills/health/scripts/collect-data.sh skills/read/scripts/fetch.sh scripts/setup-statusline.sh skills/check/scripts/run-tests.sh
 	echo "bash -n: ok"
 	python3 -m py_compile skills/read/scripts/fetch_feishu.py skills/read/scripts/fetch_weixin.py
 	echo "py_compile: ok"
@@ -107,3 +107,31 @@ smoke-health:
 		echo "false positive correction detected"; exit 1; \
 	fi; \
 	echo "health smoke: ok"
+
+smoke-link-project:
+	@set -e; \
+		tmpdir=$$(mktemp -d); \
+		home_dir="$$tmpdir/home"; \
+		mkdir -p "$$home_dir/.claude/skills" "$$home_dir/Documents/Cline/Rules" "$$home_dir/.cline" "$$home_dir/.trae" "$$home_dir/.marscode"; \
+		printf '%s\n' 'shared rules' > "$$home_dir/.claude/CLAUDE.md"; \
+		printf '%s\n' 'shared skill' > "$$home_dir/.claude/skills/README.md"; \
+		printf '%s\n' 'legacy cline skills' > "$$home_dir/.cline/skills"; \
+		printf '%s\n' 'legacy marscode rules' > "$$home_dir/.marscode/user_rules.md"; \
+		HOME="$$home_dir" /bin/bash scripts/link-project.sh > "$$tmpdir/link.out"; \
+		test -L "$$home_dir/.cline/skills"; \
+		test "$$(readlink "$$home_dir/.cline/skills")" = "$$home_dir/.claude/skills"; \
+		test -L "$$home_dir/Documents/Cline/Rules/AGENTS.md"; \
+		test "$$(readlink "$$home_dir/Documents/Cline/Rules/AGENTS.md")" = "$$home_dir/.claude/CLAUDE.md"; \
+		test -L "$$home_dir/.trae/skills"; \
+		test "$$(readlink "$$home_dir/.trae/skills")" = "$$home_dir/.claude/skills"; \
+		test -L "$$home_dir/.marscode/user_rules.md"; \
+		test "$$(readlink "$$home_dir/.marscode/user_rules.md")" = "$$home_dir/.claude/CLAUDE.md"; \
+		test -L "$$home_dir/.trae/user_rules.md"; \
+		test "$$(readlink "$$home_dir/.trae/user_rules.md")" = "$$home_dir/.claude/CLAUDE.md"; \
+		backup_dir=$$(find "$$home_dir/.waza/backups" -mindepth 1 -maxdepth 1 -type d | head -n 1); \
+		test -n "$$backup_dir"; \
+		test -f "$$backup_dir/.cline/skills"; \
+		test -f "$$backup_dir/.marscode/user_rules.md"; \
+		HOME="$$home_dir" /bin/bash scripts/link-project.sh > "$$tmpdir/relink.out"; \
+		! grep -q '^backup:' "$$tmpdir/relink.out"; \
+		echo "link-project smoke: ok"

@@ -132,3 +132,37 @@ The `/health` skill is based on the six-layer framework described in [this post]
 ## License
 
 MIT License. Feel free to use Waza and contribute.
+
+## VS Code adapters
+
+If you use AI plugins in VS Code, this repository now includes thin adapters so you can keep maintaining rules and skills in one place:
+
+- `AGENTS.md` -> symlink to `CLAUDE.md` for tools such as Cline that support the AGENTS standard.
+- `.cline/skills` -> symlink to `skills/` for Cline project skill discovery.
+- `.trae/rules/project_rules.md` -> symlink to `CLAUDE.md` for Trae project rules.
+
+If your real workflow is `cc-switch -> ~/.claude -> Cline + Trae`, run:
+
+```bash
+/absolute/path/to/Waza/scripts/link-project.sh
+```
+
+The script treats `~/.claude` as the only source of truth and creates these symlinks:
+
+- `~/.cline/skills` -> `~/.claude/skills`
+- `~/Documents/Cline/Rules/AGENTS.md` -> `~/.claude/CLAUDE.md`
+- `~/.trae/skills` -> `~/.claude/skills`
+- `~/.marscode/user_rules.md` -> `~/.claude/CLAUDE.md`
+- `~/.trae/user_rules.md` -> `~/.claude/CLAUDE.md`
+
+This fits a setup where `cc-switch` updates `~/.claude`, and `link-project.sh` fans that profile out to the VS Code plugins.
+
+If a target file already exists, it is moved to `~/.waza/backups/<timestamp>/`.
+
+Source of truth remains:
+
+- Instructions: `CLAUDE.md`
+- Skills: `skills/`
+- Optional extra rules: `rules/`
+
+Do not edit the adapter files directly unless you are changing the adapter mechanism itself.
