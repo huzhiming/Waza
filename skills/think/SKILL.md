@@ -28,6 +28,8 @@ Activate when the user wants to judge whether something should exist, be kept, e
 
 State the evaluation target and what kind of judgment is needed (value, risk, or tradeoff). Take a current-state snapshot: what it does, who uses it, what depends on it; grep and read before opining.
 
+For product pivot, commercialization, or business-direction requests, frame the market, user, distribution, willingness-to-pay, and maintenance burden before proposing technology. Do not assume open source, do not assume implementation comes first, and do not hide a business judgment inside a technical plan.
+
 **Output format (Kill/Keep/Pivot):**
 
 Line 1: one of **Kill** / **Keep** / **Pivot** as the verdict. No preamble.
@@ -105,6 +107,8 @@ A finished plan must be executable by another engineer or agent without re-decid
 - Verification commands and manual acceptance checks.
 - Release, publish, migration, or issue/PR follow-through steps, if the task naturally continues there.
 - Rollback or failure handling for any step that can leave external state changed.
+
+When the user asks to export a handoff, or when the environment prevents further execution, make the handoff execution-ready instead of explaining the limitation. Include file targets, key constants or selectors, exact commands, runtime or visual checklist, and risk boundaries. If the work depends on a screenshot or artifact, name the artifact and the pass/fail delta.
 
 When the user later says "Implement the plan", "可以干", "直接改", "整", or equivalent, treat that as approval of the written plan. Do not re-litigate the design. State which plan is being executed, check for obvious drift in the repo, and proceed. If the environment has changed enough that the plan is unsafe, name the specific drift and stop before editing.
 

@@ -57,8 +57,8 @@
     },
     {
       "name": "waza-design",
-      "description": "Produces distinctive, production-grade UI for any component, page, or visual interface. Handles screenshot-driven iteration when the user sends an image with a visual complaint. Not for backend logic or data pipelines.",
-      "version": "3.20.0",
+      "description": "Produces distinctive, production-grade UI for components, pages, and visual interfaces, with artifact-grounded screenshot iteration for real app polish. Not for backend logic or data pipelines.",
+      "version": "3.24.0",
       "category": "development",
       "source": "./skills/design",
       "homepage": "https://github.com/tw93/Waza",
@@ -77,8 +77,8 @@
     },
     {
       "name": "waza-write",
-      "description": "Strips AI writing patterns and rewrites prose to sound natural in Chinese or English. Only activates on explicit writing or editing requests. Not for code comments, commit messages, or inline docs.",
-      "version": "3.20.0",
+      "description": "Strips AI writing patterns and rewrites prose to sound natural in Chinese or English, including artifact-grounded release, launch, and social copy. Not for code comments, commit messages, or inline docs.",
+      "version": "3.24.0",
       "category": "development",
       "source": "./skills/write",
       "homepage": "https://github.com/tw93/Waza",

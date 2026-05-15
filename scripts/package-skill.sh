@@ -46,7 +46,7 @@ tar -cf - -T "$FILTERED_MANIFEST" | (cd "$STAGE" && tar -xf -)
 cat > "$STAGE/SKILL.md" <<'EOF'
 ---
 name: waza
-description: 'Dispatcher for Waza engineering skills: think (architecture), design (UI), check (review/release), hunt (debugging/regression), write (prose), learn (research), read (URL/PDF fetch), health (agent config and AI maintainability audit).'
+description: 'Dispatcher for Waza engineering skills: think (architecture/handoff), design (artifact-grounded UI), check (review/release gates), hunt (runtime debugging/regression), write (prose/release copy), learn (research), read (URL/PDF fetch), health (agent config and AI maintainability audit).'
 ---
 
 # Waza: Engineering Skills Dispatcher
@@ -59,14 +59,14 @@ You have eight skills available. Match the user's intent to the right skill, rea
 
 | Intent | Skill | File |
 |--------|-------|------|
-| New feature, architecture, "how should I design this", value judgment, executable plan | think | `skills/think/SKILL.md` |
-| UI, component, page, visual interface, frontend, screenshot aesthetic complaint | design | `skills/design/SKILL.md` |
-| Code review, before merge, release/publish/push/reaction follow-through, triage issues/PRs | check | `skills/check/SKILL.md` |
-| Error, crash, regression, screenshot-reported defect, test failure, unexpected behavior, "why broken" | hunt | `skills/hunt/SKILL.md` |
-| Writing, editing prose, polish, release notes, remove AI tone | write | `skills/write/SKILL.md` |
+| New feature, architecture, "how should I design this", value judgment, executable plan, handoff | think | `skills/think/SKILL.md` |
+| UI, component, page, visual interface, frontend, artifact-grounded screenshot aesthetic complaint | design | `skills/design/SKILL.md` |
+| Code review, before merge, release gates, generated artifacts, safety sinks, publish/push/reaction follow-through, triage issues/PRs | check | `skills/check/SKILL.md` |
+| Error, crash, regression, screenshot-reported defect, test failure, stale cache, runtime boundary, "why broken" | hunt | `skills/hunt/SKILL.md` |
+| Writing, editing prose, polish, release notes, launch/social copy, remove AI tone | write | `skills/write/SKILL.md` |
 | Deep research, unfamiliar domain, compile sources into output | learn | `skills/learn/SKILL.md` |
 | Any URL or PDF to fetch, "read this", "fetch this page" | read | `skills/read/SKILL.md` |
-| Codex/Claude ignoring instructions, agent config audit, hooks/MCP broken, health token usage, AI coding code rot, unclear context, missing verification, stale verifier output | health | `skills/health/SKILL.md` |
+| Codex/Claude ignoring instructions, agent config audit, hooks/MCP broken, health token usage, AI coding code rot, hotspot ownership, unclear context, missing verification, stale verifier output | health | `skills/health/SKILL.md` |
 
 ## How This Works
 

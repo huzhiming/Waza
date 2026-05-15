@@ -230,6 +230,38 @@ smoke-maintainability:
 		if grep -qE 'node_modules|dist/out.js|build/big.py' "$$tmpdir/excluded.out"; then \
 			echo "maintainability smoke should exclude generated/dependency directories"; exit 1; \
 		fi; \
+		bash skills/health/scripts/check-maintainability.sh "$$excluded" deep >"$$tmpdir/excluded-deep.out"; \
+		grep -q '^hotspot_ownership_status: PASS$$' "$$tmpdir/excluded-deep.out"; \
+		if grep -qE 'node_modules|dist/out.js|build/big.py' "$$tmpdir/excluded-deep.out"; then \
+			echo "hotspot ownership smoke should exclude generated/dependency directories"; exit 1; \
+		fi; \
+		hotspot_good="$$tmpdir/hotspot-good"; \
+		mkdir -p "$$hotspot_good/src"; \
+		printf '%s\n' '## Project' 'Repository Map: src contains runtime code.' '## Verification' 'Run `make test` before handoff.' '## Boundaries' 'Do not rewrite unrelated modules.' '## Hotspot Ownership' '- `src/hotspot.ts`: owned runtime hotspot. Keep the module boundary stable and run `make test` after changes.' > "$$hotspot_good/AGENTS.md"; \
+		printf 'test:\n\t@echo test\n' > "$$hotspot_good/Makefile"; \
+		ROOT="$$hotspot_good" python3 -c "import os; from pathlib import Path; p=Path(os.environ['ROOT'])/'src/hotspot.ts'; p.write_text('\\n'.join(f'export const item{i} = {i};' for i in range(900)) + '\\n')"; \
+		bash skills/health/scripts/check-maintainability.sh "$$hotspot_good" deep >"$$tmpdir/hotspot-good.out"; \
+		grep -q '^hotspot_ownership_status: PASS$$' "$$tmpdir/hotspot-good.out"; \
+		if grep -q 'large source files lack hotspot ownership or verification map' "$$tmpdir/hotspot-good.out"; then \
+			echo "documented hotspot should not warn"; exit 1; \
+		fi; \
+		hotspot_bad="$$tmpdir/hotspot-bad"; \
+		mkdir -p "$$hotspot_bad/src"; \
+		printf '%s\n' '## Project' 'Repository Map: src contains runtime code.' '## Verification' 'Run `make test` before handoff.' '## Boundaries' 'Do not rewrite unrelated modules.' > "$$hotspot_bad/AGENTS.md"; \
+		printf 'test:\n\t@echo test\n' > "$$hotspot_bad/Makefile"; \
+		ROOT="$$hotspot_bad" python3 -c "import os; from pathlib import Path; p=Path(os.environ['ROOT'])/'src/huge.ts'; p.write_text('\\n'.join(f'export const item{i} = {i};' for i in range(900)) + '\\n')"; \
+		bash skills/health/scripts/check-maintainability.sh "$$hotspot_bad" deep >"$$tmpdir/hotspot-bad.out"; \
+		grep -q '^maintainability_status: WARN$$' "$$tmpdir/hotspot-bad.out"; \
+		grep -q '^hotspot_ownership_status: WARN$$' "$$tmpdir/hotspot-bad.out"; \
+		grep -q 'src/huge.ts' "$$tmpdir/hotspot-bad.out"; \
+		hotspot_missing_test="$$tmpdir/hotspot-missing-test"; \
+		mkdir -p "$$hotspot_missing_test/src"; \
+		printf '%s\n' '## Project' 'Repository Map: src contains runtime code.' '## Verification' 'Run `make test` before handoff.' '## Boundaries' 'Do not rewrite unrelated modules.' '## Hotspot Ownership' '- `src/hotspot.ts`: owned runtime hotspot. Keep the module boundary stable.' > "$$hotspot_missing_test/AGENTS.md"; \
+		printf 'test:\n\t@echo test\n' > "$$hotspot_missing_test/Makefile"; \
+		ROOT="$$hotspot_missing_test" python3 -c "import os; from pathlib import Path; p=Path(os.environ['ROOT'])/'src/hotspot.ts'; p.write_text('\\n'.join(f'export const item{i} = {i};' for i in range(900)) + '\\n')"; \
+		bash skills/health/scripts/check-maintainability.sh "$$hotspot_missing_test" deep >"$$tmpdir/hotspot-missing-test.out"; \
+		grep -q '^hotspot_ownership_status: WARN$$' "$$tmpdir/hotspot-missing-test.out"; \
+		grep -q 'missing verification context' "$$tmpdir/hotspot-missing-test.out"; \
 		wrapper="$$tmpdir/wrapper"; \
 		mkdir -p "$$wrapper/.github/workflows" "$$wrapper/scripts"; \
 		printf '%s\n' '## Project' 'Repository Map: scripts contains verification.' '## Verification' 'Run `./scripts/check.sh --no-format`.' '## Boundaries' 'Keep checks non-mutating.' > "$$wrapper/AGENTS.md"; \

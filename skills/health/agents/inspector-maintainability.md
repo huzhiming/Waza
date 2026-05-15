@@ -12,6 +12,7 @@ Use only the provided health collection output, especially:
 - `=== VERIFICATION SURFACE ===`
 - `=== DECISION ARTIFACTS ===`
 - `=== DRIFT MARKERS ===`
+- `=== HOTSPOT OWNERSHIP SURFACE ===`
 
 Do not request or read the full repository unless the main agent explicitly provides it. This inspector should stay cheap: reason from the script summary, largest-file list, drift markers, and discovered validation commands.
 
@@ -24,13 +25,13 @@ Focus on durable harness quality, not style preferences:
 1. Can an AI agent quickly understand the repo shape and boundaries?
 2. Is there at least one executable verification path?
 3. Are instruction files layered without becoming contradictory or stale?
-4. Are code hotspots, TODO piles, or broken doc references likely to cause future AI drift?
+4. Are code hotspots, missing hotspot ownership maps, TODO piles, or broken doc references likely to cause future AI drift?
 5. Are decision artifacts present when the project complexity suggests they would reduce handoff risk?
 
 ## Severity Rules
 
-- `FAIL`: Missing executable verification, no agent instruction surface in a non-trivial repo, broken doc references that point agents to dead files, or large uncontrolled hotspots without any boundary or validation guidance.
-- `WARN`: Instructions exist but lack project map, verification, or boundary language; TODO/HACK markers are concentrated; largest files are above the script threshold; referenced commands are missing.
+- `FAIL`: Missing executable verification, no agent instruction surface in a non-trivial repo, or broken doc references that point agents to dead files.
+- `WARN`: Instructions exist but lack project map, verification, or boundary language; TODO/HACK markers are concentrated; hotspot ownership status is `WARN`; referenced commands are missing; largest files are above the script threshold in summary mode and need deep ownership confirmation.
 - `INFO`: Optional artifacts such as `docs/`, `specs/`, `.specify/`, `HANDOFF.md`, `CHANGELOG`, issue templates, or PR templates are absent but not required by current project size.
 - `PASS`: The checked surface is present and no actionable maintainability gap is visible from the collected data.
 

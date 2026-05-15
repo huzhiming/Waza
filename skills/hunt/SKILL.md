@@ -94,6 +94,20 @@ If the blast surfaces unrelated bugs, list them but do not fix in this PR unless
 
 Add one targeted instrument: a log line, a failing assertion, or the smallest test that would fail if the hypothesis is correct. Run it. If the evidence contradicts the hypothesis, discard it completely and re-orient with what was just learned. Do not preserve a hypothesis the evidence disproves.
 
+## Runtime Evidence Ladder
+
+Use this ladder before claiming a bug is fixed:
+
+1. Source trace: name the exact function, state transition, file, line, or condition that can produce the symptom.
+2. Deterministic repro: run or write the smallest command, fixture, UI path, or scenario that produces it.
+3. Logs/state/cache: inspect the runtime state that proves the path was reached, including queues, DB rows, caches, temp files, generated outputs, or external tool logs.
+4. Build/test: run the narrow test or build that exercises the fix.
+5. Real runtime check: for UI, native app, browser, rendering, or visual bugs, open the app/page/artifact and verify the visible result with a screenshot or concrete checklist.
+
+Compile-only is not enough for UI, native-app, visual, rendering, or generated-artifact bugs. If the runtime check is impossible in the environment, say why and hand off the exact screen, command, or artifact to verify.
+
+For recurring classes of failures, load `references/failure-patterns.md` before adding a second fix.
+
 ## Targeted Logging
 
 Use logs as a scalpel, not as noise. Before adding a log, write the question it answers:
@@ -121,6 +135,7 @@ If adding logs changes the behavior, treat that as evidence of a timing, lifecyc
 | Reproduced locally but failed in CI | Align the environment first (runtime version, env vars, timezone), then chase the code |
 | Stack trace points deep into a library | Walk back 3 frames into your own code; the bug is almost always there, not in the dependency |
 | Worked when launched from app, broke when opened via file association / drag-drop / deep link / external proxy | Reproduce using the exact entry point the user described. App-internal init differs from cold-launch-with-file init; state may not be ready when the document arrives. |
+| Build passed but UI still looked wrong | Move up the Runtime Evidence Ladder and verify the real rendered surface or artifact. |
 
 ## Outcome
 

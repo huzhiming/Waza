@@ -92,6 +92,11 @@ NPM_CMD_RE = re.compile(r"\b(?:npm|pnpm|yarn|bun)\s+run\s+([A-Za-z0-9:_-]+)\b")
 COMMAND_LINE_RE = re.compile(r"^(?:make|npm|pnpm|yarn|bun)\s+")
 MARKDOWN_LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
 URL_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
+HOTSPOT_WORD_RE = re.compile(r"(hotspot|large file|ownership|owner|boundary|module|owned|owns|负责|边界|模块|热点|大文件)", re.IGNORECASE)
+VERIFICATION_WORD_RE = re.compile(
+    r"(verification|verify|test|check|make\s+\w+|pytest|go test|cargo test|npm test|npm run|pnpm|yarn|swift test|xcodebuild|验证|测试)",
+    re.IGNORECASE,
+)
 
 
 def rel(path: Path) -> str:
@@ -300,6 +305,74 @@ def verification_surface(instruction_files: list[Path]) -> tuple[list[str], list
     return unique_commands, unique_missing, make_targets, package_scripts
 
 
+def hotspot_ownership_surface(
+    records: list[tuple[int, int, Path]],
+    instruction_files: list[Path],
+) -> tuple[str, list[str], list[str], list[str]]:
+    if mode != "deep":
+        return "SKIPPED", [], [], []
+    if not records:
+        return "PASS", [], [], []
+
+    snippets: list[str] = []
+    for path in instruction_files:
+        snippets.append(f"\n# {rel(path)}\n{read_text(path, 200_000)}")
+    instruction_text = "\n".join(snippets)
+    lower_text = instruction_text.lower()
+    instruction_lines = instruction_text.splitlines()
+
+    documented: list[str] = []
+    missing: list[str] = []
+    for lines, _size, path in records:
+        relative = rel(path)
+        relative_lower = relative.lower()
+        indices: list[int] = []
+        start = 0
+        while True:
+            index = lower_text.find(relative_lower, start)
+            if index < 0:
+                break
+            indices.append(index)
+            start = index + len(relative_lower)
+
+        if not indices:
+            missing.append(f"{relative} lines={lines} reason=not mentioned in agent instructions")
+            continue
+
+        saw_hotspot_context = False
+        saw_verification_context = False
+        has_documented_entry = False
+        for index in indices:
+            window = lower_text[max(0, index - 700) : index + len(relative_lower) + 700]
+            line_no = lower_text[:index].count("\n")
+            local_lines = instruction_lines[max(0, line_no - 1) : line_no + 4]
+            local_context = "\n".join(local_lines)
+            has_hotspot_context = bool(HOTSPOT_WORD_RE.search(window))
+            has_verification_context = bool(VERIFICATION_WORD_RE.search(local_context))
+            saw_hotspot_context = saw_hotspot_context or has_hotspot_context
+            saw_verification_context = saw_verification_context or has_verification_context
+            if has_hotspot_context and has_verification_context:
+                has_documented_entry = True
+                break
+
+        if has_documented_entry:
+            documented.append(f"{relative} lines={lines}")
+        else:
+            reasons = []
+            if not saw_hotspot_context:
+                reasons.append("missing ownership/boundary context")
+            if not saw_verification_context:
+                reasons.append("missing verification context")
+            if saw_hotspot_context and saw_verification_context:
+                reasons.append("ownership and verification are not in the same hotspot entry")
+            missing.append(f"{relative} lines={lines} reason={'; '.join(reasons)}")
+
+    findings: list[str] = []
+    if missing:
+        findings.append("large source files lack hotspot ownership or verification map")
+    return ("WARN" if missing else "PASS"), documented, missing, findings
+
+
 files = iter_files()
 tracked_count = len(files)
 extensions = Counter(path.suffix.lower() or "(none)" for path in files)
@@ -384,11 +457,8 @@ for path in source_files:
         todo_total += count
 
 large_line_limit = 1200 if mode == "summary" else 800
-large_files = [
-    f"{rel(path)} lines={lines} bytes={size}"
-    for lines, size, path in source_stats
-    if lines >= large_line_limit
-]
+large_file_records = [(lines, size, path) for lines, size, path in source_stats if lines >= large_line_limit]
+large_files = [f"{rel(path)} lines={lines} bytes={size}" for lines, size, path in large_file_records]
 todo_hotspots = [f"{path} markers={count}" for path, count in todo_counts.most_common(8 if mode == "deep" else 5)]
 
 doc_ref_status = "unavailable"
@@ -427,8 +497,14 @@ if missing_references:
     verification_warnings.append("instruction references missing commands")
 if todo_total >= (50 if mode == "summary" else 25):
     drift_warnings.append("TODO/FIXME/HACK/XXX markers are concentrated")
-if large_files:
+hotspot_status, documented_hotspots, missing_hotspot_ownership, hotspot_findings = hotspot_ownership_surface(
+    large_file_records,
+    instruction_files,
+)
+if large_files and mode != "deep":
     drift_warnings.append("large source files need ownership or module boundaries")
+if hotspot_status == "WARN":
+    drift_warnings.extend(hotspot_findings)
 if doc_ref_status == "fail":
     drift_warnings.append("broken documentation references")
 
@@ -448,7 +524,15 @@ drift_status = "WARN" if drift_warnings else "PASS"
 
 if context_status == "FAIL" or verification_status == "FAIL" or doc_ref_status == "fail":
     overall = "FAIL"
-elif "WARN" in {context_status, verification_status, decision_status, wrapper_status, drift_status, markdown_link_status}:
+elif "WARN" in {
+    context_status,
+    verification_status,
+    decision_status,
+    wrapper_status,
+    drift_status,
+    markdown_link_status,
+    hotspot_status,
+}:
     overall = "WARN"
 else:
     overall = "PASS"
@@ -523,6 +607,25 @@ if doc_ref_detail and (mode == "deep" or doc_ref_status == "fail"):
     print(f"broken_doc_reference_detail: {doc_ref_detail}")
 print("drift_findings:")
 print_list(drift_warnings)
+
+print("=== HOTSPOT OWNERSHIP SURFACE ===")
+print(f"hotspot_ownership_status: {hotspot_status}")
+print(f"large_hotspot_threshold_lines: {large_line_limit if mode == 'deep' else '(deep mode only)'}")
+print("documented_hotspots:")
+if mode == "deep":
+    print_list(documented_hotspots)
+else:
+    print("  (skipped: deep mode only)")
+print("missing_hotspot_ownership:")
+if mode == "deep":
+    print_list(missing_hotspot_ownership)
+else:
+    print("  (skipped: deep mode only)")
+print("hotspot_ownership_findings:")
+if mode == "deep":
+    print_list(hotspot_findings)
+else:
+    print("  (skipped: deep mode only)")
 
 print("=== MARKDOWN LINK SURFACE ===")
 print(f"markdown_link_status: {markdown_link_status}")
