@@ -33,6 +33,30 @@ Any of these can appear if they serve the design intentionally. They cannot appe
 
 Final test: if you swapped in completely different content and the layout still made sense without changes, you built a template, not a design. Redo it.
 
+## Content Authenticity
+
+Placeholder copy that looks real but is not real breaks the illusion the moment a user reads it. Apply these rules before handoff.
+
+**Sample data:**
+- No generic names: not John Doe, Jane Smith, Alex Johnson, or any first-name-last-name combination that reads as filler. Use culturally varied names with real specificity (e.g., Priya Mehta, Lars Eriksson, Nia Okafor).
+- No generic company names: not Acme Corp, Nexus, SmartFlow, TechCorp, Initech. Pick names with a domain (e.g., Meridian Logistics, Hokkaido Ceramics, Vantage Bioworks).
+- No Lorem Ipsum. Write short real copy that matches the layout's reading level.
+- No round numbers in data samples. `99.99%` uptime, `50%` conversion, `$100.00` MRR look synthetic. Use organic values instead: `99.94%`, `47.2%`, `$99.00`.
+- Multiple avatar instances must not share the same image. Multiple blog post or event cards must not share the same date.
+
+**UI copy:**
+- Sentence case on all headings. Title Case On Every Heading is the most common AI tell in body copy.
+- Remove exclamation marks from success states ("Saved!" → "Saved", "Done!" → "Done"). Reserve `!` for genuine urgency.
+- Never open an error message with "Oops!". It reads as condescending.
+- No passive voice in error messages ("Something went wrong" → "We couldn't load your data. Try refreshing.").
+- Banned AI marketing words in hero copy, CTAs, and feature descriptions: Elevate, Seamless, Unleash, Delve, Tapestry, Game-changer, Next-Gen, "In the world of...". These words communicate nothing about the product. Name the specific value instead.
+
+## Placeholders Over Imitations
+
+When an icon, image, or component is unavailable: use a placeholder. In hi-fi design a labeled placeholder is always better than a low-quality attempt at the real thing. Examples: a grey rectangle for a hero image, a monogram wordmark for a missing logo, a dashed border for a component not yet designed.
+
+Never draw illustrative imagery using inline SVG. SVG is for icons and geometric shapes. For photography, illustrations, or product shots, use a placeholder and ask the user to supply real assets.
+
 ## Production Quality Baseline
 
 Check before handoff. These are not aesthetic choices, they are non-negotiable.
@@ -81,9 +105,27 @@ Check before handoff. These are not aesthetic choices, they are non-negotiable.
 - Shadows over borders: use layered `box-shadow` for depth on cards, buttons, and elevated elements so the surface feels lifted, not fenced in; reserve actual `border` for dividers, table cells, and layout separation (applies primarily to light mode; on dark surfaces see the dark-mode surface hierarchy rule below)
 - Image outlines: add a subtle inset outline so images hold their own depth without altering layout dimensions: `outline: 1px solid rgba(0,0,0,0.1); outline-offset: -1px` (light) or `outline: 1px solid rgba(255,255,255,0.1); outline-offset: -1px` (dark)
 - Minimum hit area: keep every interactive target at least 40×40px so even small controls feel generous and precise; extend with a centered pseudo-element when the visible element is smaller, and never let hit areas of two interactive elements overlap
+- Multi-card alignment: in a card group, bottom-align all CTA buttons so height variations between cards don't create a ragged action row. In pricing or comparison cards, align feature list items to a shared Y origin across all columns. In side-by-side panels (testimonials, plans, feature breakdowns), title, description, price, and action button must share baselines across the row. Section top and bottom padding need not be symmetric: optical balance often requires bottom padding 20-25% larger than top. Constrain body paragraph width to approximately 65 characters (ch) to maintain comfortable reading line length.
 - Light-mode app surface hierarchy: adjacent nested surfaces must be visually distinguishable. Minimum: background-color step of at least 4% lightness between sidebar and main area, and between main area and cards; or a shadow of at least `0 1px 3px rgba(0,0,0,0.10)` on elevated cards. A white card on a near-white background with `box-shadow: 0 1px 2px rgba(0,0,0,0.05)` is invisible -- that is not depth, it is noise.
 - Dark-mode surface hierarchy: the page canvas is a near-black solid (e.g. `#08090a`). Elevation is communicated by adding semi-transparent white overlays on top of that canvas: cards at `rgba(255,255,255,0.02)`, elevated surfaces at `0.04`, prominent panels at `0.05`. Borders follow the same logic: `rgba(255,255,255,0.05)` for subtle, `0.08` for standard. Traditional drop shadows (dark on dark) are nearly invisible; luminance stepping through background opacity is the primary depth cue on dark surfaces.
-- Border radius system: define a named radius scale during direction lock instead of picking values ad-hoc. A minimal scale is 3–4 tiers (e.g. `{4px, 8px, 12px, pill}`); a richer system might run 6–8 tiers. The point is committing to a named set before the first component so that all surfaces speak the same spatial language — not covering every possible radius value.
+- Border radius system: define a named radius scale during direction lock instead of picking values ad-hoc. A minimal scale is 3–4 tiers (e.g. `{4px, 8px, 12px, pill}`); a richer system might run 6–8 tiers. The point is committing to a named set before the first component so that all surfaces speak the same spatial language -- not covering every possible radius value.
+
+### Adding to Existing UI
+
+When extending an existing interface, first spend time understanding its visual vocabulary. Match all of the following before writing the first line of new code:
+- Copywriting tone and reading level (technical? casual? punchy?)
+- Color palette and semantic color roles (which tokens mean "danger", "success", "muted")
+- Hover and click states: scale, color shift, underline, background fill
+- Animation style: duration, easing, whether interactions bounce or are strictly ease-out
+- Shadow and card treatment: which surfaces are elevated, which are flush
+- Layout density and whitespace rhythm
+- Border radius choices and whether buttons are pill, square, or a specific fixed value
+
+If swapping in different content would make the new component look out of place, the vocabulary was not matched closely enough.
+
+## Data Visualization Surfaces
+
+For dashboards, analytics views, chart-heavy interfaces, or number-dense displays, load `references/design-data-viz.md`. It owns dashboard defaults, chart selection, number alignment, and product-benchmark extraction.
 
 ## Reflex Fonts to Reject
 
@@ -170,6 +212,12 @@ Complements the motion timing in the main SKILL.md constraints.
 
 Source: [github.com/VoltAgent/awesome-design-md](https://github.com/VoltAgent/awesome-design-md)
 
+## Reference Material Priority
+
+When source code and a screenshot are both available for a reference UI: read the code. Source files contain exact token values; screenshots require guessing. Reconstruct from what is written, not what is visible.
+
+When only a URL is provided: fetching it returns extracted text only, with no layout information. For visual references ("make it look like X"), ask for a screenshot rather than inferring visual design from stripped HTML.
+
 ## DESIGN.md Scaffold (Optional, Production UIs)
 
 For a multi-page or production UI, emit a short `DESIGN.md`-style summary before writing the first component. This forces enumeration of decisions that would otherwise be left implicit and lets the user correct direction early. The nine sections:
@@ -182,14 +230,49 @@ For a multi-page or production UI, emit a short `DESIGN.md`-style summary before
 6. **Depth and Elevation** - shadow system or background-color-step system; describe each level
 7. **Do's and Don'ts** - 5 to 10 guardrails specific to this project, not generic rules
 8. **Responsive Behavior** - breakpoints, how navigation collapses, touch target minimums
-9. **Agent Prompt Guide** - a quick color reference (name: value pairs) + 3 to 5 example component prompts ready to paste into a follow-up request. Prompts must be specific enough to execute without further lookup: every value, every radius, every letter-spacing, every weight inlined. Example standard (values are illustrative, use the project's own tokens): "Create a hero on `{bg-canvas}`, headline at 48px weight 600, line-height 1.00, letter-spacing -0.022em, color `{text-primary}`, CTA at `{accent}` with `{btn-radius}` radius" — that level of specificity, not "hero with primary color and CTA button"
+9. **Agent Prompt Guide** - a quick color reference (name: value pairs) + 3 to 5 example component prompts ready to paste into a follow-up request. Prompts must be specific enough to execute without further lookup: every value, every radius, every letter-spacing, every weight inlined. Example standard (values are illustrative, use the project's own tokens): "Create a hero on `{bg-canvas}`, headline at 48px weight 600, line-height 1.00, letter-spacing -0.022em, color `{text-primary}`, CTA at `{accent}` with `{btn-radius}` radius"; that level of specificity, not "hero with primary color and CTA button"
 
 For a single component or quick prototype, skip this. The three-line thesis in SKILL.md is sufficient.
+
+## Pre-Handoff Checklist: Strategic Omissions
+
+These are the items most frequently missing from AI-generated UIs because they require intentional product thinking, not visual judgment. Run through them before every handoff.
+
+- [ ] **Custom 404 page**: a generic framework 404 is a broken experience. Build a branded page with a clear path back (home link, search, or most-used nav items).
+- [ ] **Back navigation**: every page reachable by user action must have a clear, functional path back. Dead-end pages (detail views, confirmation screens, modal-only flows) are UX failures.
+- [ ] **Form client-side validation**: email fields validate format before submit; required fields show inline errors; error messages appear adjacent to the field, not only at form top.
+- [ ] **Skip-to-content link**: a visually hidden `<a href="#main-content">Skip to main content</a>` as the first focusable element in the document. Required for keyboard accessibility.
+- [ ] **Cookie consent**: if the product operates in the EU or California, cookie consent UI is not optional. Scope the implementation to the jurisdiction.
+- [ ] **Footer Privacy and Terms links**: every product page needs these. Their absence signals "demo", not "product".
+
+These are not visual polish items. They are the difference between a demo and a shippable product.
 
 ## AI Slop Test
 
 Would a stranger glancing at the first viewport say "an AI made this" immediately? If yes, the committed direction was not committed enough. The usual culprits: reflex font, default purple accent, centered hero with generic card grid beneath. Fix the typography, the color system, or the layout until the answer flips.
 
+## Brand Preset Flow
+
+For well-known brands (Linear, Stripe, Claude, Vercel, Apple, Tesla, Notion, Figma, Airbnb, Spotify, and ~56 others catalogued in `awesome-design-md`): ask the user whether to pull the curated preset via `npx getdesign@latest add <brand>`. If they approve, run it, read the generated `DESIGN.md` at project root, then do the 3-property decomposition against that file rather than from memory. The preset is a starting point, not a direction: the user still names the aesthetic precisely, and the reflex-font blocklist and absolute bans still win on any conflict.
+
+## App Shell Rules
+
+When building a sidebar + main workspace layout (Slack, Linear, Notion class):
+- Decorative backgrounds default to off
+- Surface hierarchy uses background-color steps and shadow only
+- All interactive elements get `active:scale-95`
+- Button radius is consistent within each component type (pick one: pill, square, or one fixed value, do not mix)
+- Commit to a named radius scale before the first component (see Border radius system above)
+
+## Options Guide
+
+When asked for design options, give at least 3 variations spread across genuinely different dimensions:
+
+- **Dimensions to vary**: visual density, typographic personality, color temperature, layout structure, motion character, amount of decoration, level of abstraction
+- **Mix approaches**: one option that follows existing conventions closely, one that remixes the brand DNA in a new way, one that is deliberately unexpected
+- **Progress from basic to bold**: the first option is safe and understandable; later options push further
+- Three options that differ only by accent color are not three variations. Vary the layout, the typeface, the motion, the surface treatment.
+
 ---
 
-*Rules in Reflex Fonts, Font Selection, OKLCH, Theme Matrix, Absolute Bans, Motion Specifics, and AI Slop Test adapted from [pbakaus/impeccable](https://github.com/pbakaus/impeccable) (Apache 2.0). DESIGN.md Scaffold adapted from [getdesign.md](https://getdesign.md) (MIT); concept credited to Google Stitch. Brand preset catalog from [VoltAgent/awesome-design-md](https://github.com/VoltAgent/awesome-design-md) (MIT).*
+*Rules in Reflex Fonts, Font Selection, OKLCH, Theme Matrix, Absolute Bans, Motion Specifics, and AI Slop Test adapted from [pbakaus/impeccable](https://github.com/pbakaus/impeccable) (Apache 2.0). DESIGN.md Scaffold adapted from [getdesign.md](https://getdesign.md) (MIT); concept credited to Google Stitch. Brand preset catalog from [VoltAgent/awesome-design-md](https://github.com/VoltAgent/awesome-design-md) (MIT). Content Authenticity, Multi-Card Alignment, and Strategic Omissions inspired by [Leonxlnx/taste-skill](https://github.com/Leonxlnx/taste-skill).*

@@ -64,8 +64,23 @@ if os.path.exists(path):
 if [ -n "$EXISTING" ]; then
   echo "Another statusline is already configured:"
   echo "  $EXISTING"
-  printf "Replace it with Waza statusline? [Y/n] "
-  read -r ans
+  ans=""
+  prompted=0
+  if [ -t 0 ]; then
+    printf "Replace it with Waza statusline? [Y/n] "
+    if read -r ans; then prompted=1; fi
+  elif { printf "Replace it with Waza statusline? [Y/n] " >/dev/tty; } 2>/dev/null \
+      && read -r ans </dev/tty 2>/dev/null; then
+    prompted=1
+  fi
+  if [ "$prompted" -eq 0 ]; then
+    echo "Non-interactive shell with no controlling TTY; keeping existing statusline."
+    echo "Re-run interactively (or set WAZA_REPLACE_STATUSLINE=1) to replace it."
+    if [ "${WAZA_REPLACE_STATUSLINE:-}" != "1" ]; then
+      exit 0
+    fi
+    ans="y"
+  fi
   if [ "$ans" = "n" ] || [ "$ans" = "N" ]; then
     echo "Skipped. Existing statusline kept."
     exit 0

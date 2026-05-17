@@ -2,8 +2,14 @@
 .claude/
 .agent/
 .qoder/
+CLAUDE.md
+CLAUDE.local.md
 AGENTS.md
+AGENTS.override.md
 skills-lock.json
+
+# Distribution
+/dist/
 
 # macOS
 .DS_Store
